@@ -1,0 +1,53 @@
+{{- if .Values.backup.enabled -}}
+# ---------------------------------------------------------
+# CronJob: Backs up Postgres to AWS S3
+# ---------------------------------------------------------
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-backup
+spec:
+  schedule: "{{ .Values.backup.schedule }}"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup-worker
+            image: postgres:15 # Using Postgres image to get pg_dump tool
+            
+            # 🔑 Inject AWS Credentials from Secret
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-creds
+                  key: access_key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-creds
+                  key: secret_key
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.global.region }}
+            - name: PGPASSWORD
+              value: {{ .Values.database.credentials.password }}
+            
+            # 📜 The Backup Script
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "🛠️ Installing AWS CLI..."
+              apt-get update && apt-get install -y awscli
+
+              echo "💾 Dumping Database..."
+              pg_dump -h db -U {{ .Values.database.credentials.user }} {{ .Values.database.credentials.name }} > /tmp/backup.sql
+
+              echo "☁️ Uploading to S3..."
+              aws s3 cp /tmp/backup.sql s3://{{ .Values.backup.s3Bucket }}/backup-$(date +%Y-%m-%d).sql
+              
+              echo "✅ Backup Complete!"
+          
+          restartPolicy: OnFailure
+{{- end }}

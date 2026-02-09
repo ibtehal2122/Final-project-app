@@ -1,0 +1,27 @@
+{{- if .Values.security.cosign.publicKey }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: check-image-signature
+  annotations:
+    policies.kyverno.io/title: Verify Image Signature
+spec:
+  validationFailureAction: Audit # خليه Enforce لو عاوزة تمنعي، Audit للتحذير بس
+  background: true
+  rules:
+    - name: verify-signature
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      verifyImages:
+      - imageReferences:
+        - "{{ .Values.images.registry }}/{{ .Values.images.repository }}*" # طبق السياسة على الصور بتاعتنا بس
+        mutateDigest: false
+        verifyDigest: false
+        attestations:
+        - predicateType: cosign.sigstore.dev/attestation/v1
+        key: |-
+{{ .Values.security.cosign.publicKey | indent 10 }}
+{{- end }}

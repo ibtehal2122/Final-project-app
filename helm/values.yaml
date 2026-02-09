@@ -1,0 +1,89 @@
+# ==================================================================
+# 🌍 GLOBAL CONFIGURATION
+# ==================================================================
+global:
+  region: us-east-1
+  accountId: "330857833030"
+
+# ==================================================================
+# 🐳 IMAGES CONFIGURATION
+# Note: We use the SAME repo for both, but different tags.
+# ==================================================================
+images:
+  registry: 330857833030.dkr.ecr.us-east-1.amazonaws.com
+  repository: ebtehal-final-eks-repo  # 👈 Your specific repo name
+  pullPolicy: Always
+
+# ==================================================================
+# ⚙️ BACKEND CONFIGURATION
+# ==================================================================
+backend:
+  tag: "backend-latest" # Pipeline will update this (e.g., backend-sha123)
+  replicaCount: 1
+  service:
+    port: 5000
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# ==================================================================
+# 🎨 FRONTEND CONFIGURATION
+# ==================================================================
+frontend:
+  tag: "frontend-latest" # Pipeline will update this
+  replicaCount: 1
+  service:
+    port: 80
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+# ==================================================================
+# 🗄️ DATABASE CONFIGURATION (PostgreSQL)
+# ==================================================================
+database:
+  image: postgres:15
+  storage:
+    size: 1Gi
+    class: gp2
+  credentials:
+    name: microservices_db
+    user: postgres
+    password: postgres # ⚠️ In prod, use external Secrets
+
+# ==================================================================
+# ⏰ BACKUP CONFIGURATION (CronJob)
+# ==================================================================
+backup:
+  enabled: true
+  schedule: "0 0 * * *" # Runs every day at midnight
+  s3Bucket: "ebtehal-backup-bucket-2026" # ⚠️ CHANGE THIS to your unique bucket name
+  aws:
+    accessKeyId: ""      # Leave empty here; we will inject via Secrets or Pipeline
+    secretAccessKey: ""  # Leave empty here; we will inject via Secrets or Pipeline
+
+# ==================================================================
+# 🚦 INGRESS CONFIGURATION
+# ==================================================================
+ingress:
+  enabled: true
+  className: nginx
+# ==================================================================
+# 🛡️ SECURITY & POLICY (Kyverno)
+# ==================================================================
+security:
+  cosign:
+    # ده المفتاح العام اللي Kyverno هيستخدمه عشان يتأكد إن الصورة بتاعتك
+    # ⚠️ انسخي المفتاح العام (cosign.pub) وحطيه هنا
+    publicKey: |-
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (حطي مفتاحك هنا)
+      -----END PUBLIC KEY-----

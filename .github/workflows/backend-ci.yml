@@ -1,0 +1,72 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    paths:
+      - 'backend/**'           # 🚀 Trigger only when backend code changes
+      - 'helm/values.yaml'     # Watch for value changes
+      - '!helm/**'             # Ignore other helm changes to avoid infinite loops
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  # 👇 Your Single ECR Repo Name (from your screenshot)
+  ECR_REPOSITORY: ebtehal-final-eks-repo
+  HELM_VALUES_FILE: helm/values.yaml
+
+jobs:
+  build-and-deploy:
+    name: Build Backend & Update Helm
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1️⃣ Checkout the Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2️⃣ Configure AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3️⃣ Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # 4️⃣ Build & Push Docker Image (Flask)
+      - name: Build and Push Backend Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # 🏷️ Creating a dynamic tag: backend-<commit-hash>
+          IMAGE_TAG: "backend-${{ github.sha }}"
+        run: |
+          echo "🏗️ Building Backend Image..."
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend
+          
+          echo "🚀 Pushing Image to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # 5️⃣ Update Helm Values (GitOps Magic ✨)
+      # This step updates the 'tag' in values.yaml, which triggers ArgoCD
+      - name: Update Helm Values
+        uses: mikefarah/yq@master
+        with:
+          # 👇 Updates: backend.tag = "backend-<commit-sha>"
+          cmd: yq -i '.backend.tag = "backend-${{ github.sha }}"' ${{ env.HELM_VALUES_FILE }}
+
+      # 6️⃣ Commit & Push Changes back to Repo
+      - name: Commit and Push Helm Changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          
+          git add ${{ env.HELM_VALUES_FILE }}
+          
+          # Only commit if there are changes to avoid empty commit errors
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🚀 Update Backend Tag to ${{ github.sha }}" && git push origin main)

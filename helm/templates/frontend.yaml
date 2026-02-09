@@ -1,0 +1,56 @@
+# ---------------------------------------------------------
+# Frontend Deployment: Runs the React App
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          # 🚀 Dynamic Image Construction
+          image: "{{ .Values.images.registry }}/{{ .Values.images.repository }}:{{ .Values.frontend.tag }}"
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          
+          ports:
+            - containerPort: {{ .Values.frontend.service.port }}
+          
+          resources:
+            requests:
+              memory: {{ .Values.frontend.resources.requests.memory }}
+              cpu: {{ .Values.frontend.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.frontend.resources.limits.memory }}
+              cpu: {{ .Values.frontend.resources.limits.cpu }}
+          
+          # 🔗 API URL Configuration (Points to Ingress path)
+          env:
+            - name: REACT_APP_API_URL
+              value: "/api"
+
+---
+# ---------------------------------------------------------
+# Frontend Service
+# ---------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.port }}

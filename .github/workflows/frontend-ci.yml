@@ -1,0 +1,69 @@
+name: Frontend CI/CD Pipeline
+
+on:
+  push:
+    paths:
+      - 'frontend/**'          # 🚀 Trigger only when frontend code changes
+      - 'helm/values.yaml'
+      - '!helm/**'
+    branches: [ main ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: ebtehal-final-eks-repo # Same Repo, different Tag
+  HELM_VALUES_FILE: helm/values.yaml
+
+jobs:
+  build-and-deploy:
+    name: Build Frontend & Update Helm
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1️⃣ Checkout Code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2️⃣ Configure AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 3️⃣ Login ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # 4️⃣ Build & Push Docker Image (Nginx/HTML)
+      - name: Build and Push Frontend Image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          # 🏷️ Creating a dynamic tag: frontend-<commit-hash>
+          IMAGE_TAG: "frontend-${{ github.sha }}"
+        run: |
+          echo "🏗️ Building Frontend Image..."
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
+          
+          echo "🚀 Pushing Image to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      # 5️⃣ Update Helm Values
+      - name: Update Helm Values
+        uses: mikefarah/yq@master
+        with:
+          # 👇 Updates: frontend.tag = "frontend-<commit-sha>"
+          cmd: yq -i '.frontend.tag = "frontend-${{ github.sha }}"' ${{ env.HELM_VALUES_FILE }}
+
+      # 6️⃣ Commit & Push
+      - name: Commit and Push Helm Changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          
+          git add ${{ env.HELM_VALUES_FILE }}
+          
+          git diff --quiet && git diff --staged --quiet || (git commit -m "🚀 Update Frontend Tag to ${{ github.sha }}" && git push origin main)
