@@ -16,7 +16,7 @@ images:
 # ⚙️ BACKEND CONFIGURATION
 # ==================================================================
 backend:
-  tag: "backend-8f4fbefe13bfb42e4441a14c0402b5c949efbea8" # Pipeline will update this (e.g., backend-sha123)
+  tag: "backend-458af60c9f79cc75bb6739cbb1b95619ceb7d73f" # Pipeline will update this (e.g., backend-sha123)
   replicaCount: 1
   service:
     port: 5000
@@ -81,6 +81,4 @@ security:
       -----BEGIN PUBLIC KEY-----
       MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE... (حطي مفتاحك هنا)
       -----END PUBLIC KEY-----
-
-
 #يامسهل
