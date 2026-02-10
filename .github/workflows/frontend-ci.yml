@@ -6,6 +6,7 @@ on:
       - 'frontend/**'          # 🚀 Trigger only when frontend code changes
       - 'helm/values.yaml'
       - '!helm/**'
+      
     branches: [ main ]
 
 env:
