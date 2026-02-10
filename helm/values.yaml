@@ -31,7 +31,7 @@ backend:
 # 🎨 FRONTEND CONFIGURATION
 # ==================================================================
 frontend:
-  tag: "frontend-latest" # Pipeline will update this
+  tag: "frontend-458af60c9f79cc75bb6739cbb1b95619ceb7d73f" # Pipeline will update this
   replicaCount: 1
   service:
     port: 80
