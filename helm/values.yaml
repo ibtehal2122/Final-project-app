@@ -4,21 +4,19 @@
 global:
   region: us-east-1
   accountId: "330857833030"
-
 # ==================================================================
 # 🐳 IMAGES CONFIGURATION
 # Note: We use the SAME repo for both, but different tags.
 # ==================================================================
 images:
   registry: 330857833030.dkr.ecr.us-east-1.amazonaws.com
-  repository: ebtehal-final-eks-repo  # 👈 Your specific repo name
+  repository: ebtehal-final-eks-repo # 👈 Your specific repo name
   pullPolicy: Always
-
 # ==================================================================
 # ⚙️ BACKEND CONFIGURATION
 # ==================================================================
 backend:
-  tag: "backend-latest" # Pipeline will update this (e.g., backend-sha123)
+  tag: "backend-8f4fbefe13bfb42e4441a14c0402b5c949efbea8" # Pipeline will update this (e.g., backend-sha123)
   replicaCount: 1
   service:
     port: 5000
@@ -29,7 +27,6 @@ backend:
     limits:
       memory: "256Mi"
       cpu: "200m"
-
 # ==================================================================
 # 🎨 FRONTEND CONFIGURATION
 # ==================================================================
@@ -45,7 +42,6 @@ frontend:
     limits:
       memory: "128Mi"
       cpu: "100m"
-
 # ==================================================================
 # 🗄️ DATABASE CONFIGURATION (PostgreSQL)
 # ==================================================================
@@ -58,7 +54,6 @@ database:
     name: microservices_db
     user: postgres
     password: postgres # ⚠️ In prod, use external Secrets
-
 # ==================================================================
 # ⏰ BACKUP CONFIGURATION (CronJob)
 # ==================================================================
@@ -67,9 +62,8 @@ backup:
   schedule: "0 0 * * *" # Runs every day at midnight
   s3Bucket: "ebtehal-backup-bucket-2026" # ⚠️ CHANGE THIS to your unique bucket name
   aws:
-    accessKeyId: ""      # Leave empty here; we will inject via Secrets or Pipeline
-    secretAccessKey: ""  # Leave empty here; we will inject via Secrets or Pipeline
-
+    accessKeyId: "" # Leave empty here; we will inject via Secrets or Pipeline
+    secretAccessKey: "" # Leave empty here; we will inject via Secrets or Pipeline
 # ==================================================================
 # 🚦 INGRESS CONFIGURATION
 # ==================================================================
