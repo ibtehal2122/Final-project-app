@@ -60,13 +60,19 @@ jobs:
           # 👇 Updates: backend.tag = "backend-<commit-sha>"
           cmd: yq -i '.backend.tag = "backend-${{ github.sha }}"' ${{ env.HELM_VALUES_FILE }}
 
-      # 6️⃣ Commit & Push Changes back to Repo
+     # 6️⃣ Commit & Push Helm Changes (Fixed for Concurrency)
       - name: Commit and Push Helm Changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           
+          # 1. Add and Commit locally first
           git add ${{ env.HELM_VALUES_FILE }}
+          git diff --quiet && git diff --staged --quiet || git commit -m "🚀 Update Image Tag to ${{ github.sha }}"
           
-          # Only commit if there are changes to avoid empty commit errors
-          git diff --quiet && git diff --staged --quiet || (git commit -m "🚀 Update Backend Tag to ${{ github.sha }}" && git push origin main)
+          # 2. Pull the latest changes from remote (Rebase strategy)
+          # ده السطر السحري اللي بيحل المشكلة 👇
+          git pull origin main --rebase
+          
+          # 3. Now Push safely
+          git push origin main
