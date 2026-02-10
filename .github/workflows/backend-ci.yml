@@ -5,8 +5,10 @@ on:
     paths:
       - 'backend/**'           # 🚀 Trigger only when backend code changes
       - 'helm/values.yaml'     # Watch for value changes
-      - '!helm/**'             # Ignore other helm changes to avoid infinite loops
+     # - 'helm/**'             # Ignore other helm changes to avoid infinite loops
     branches: [ main ]
+    workflow_dispatch:
+
 
 env:
   AWS_REGION: us-east-1
